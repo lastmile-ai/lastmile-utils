@@ -1,9 +1,16 @@
 import functools
 import traceback
-from typing import Callable, Concatenate, Generator, Iterable, ParamSpec, Tuple, TypeVar
+from typing import (
+    Callable,
+    Concatenate,
+    Generator,
+    Iterable,
+    ParamSpec,
+    Tuple,
+    TypeVar,
+)
 
 from result import Err, Ok, Result
-
 
 # Types
 
@@ -39,7 +46,9 @@ def result_to_exitcode(r: Result[T, str], fail_code: int = 1) -> int:
     return r.map(_ok).unwrap_or(fail_code)
 
 
-def result_reduce_list_separate(lst: Iterable[Result[T, str]]) -> Tuple[list[T], list[str]]:
+def result_reduce_list_separate(
+    lst: Iterable[Result[T, str]]
+) -> Tuple[list[T], list[str]]:
     oks, errs = [], []
     for item in lst:
         match item:
@@ -52,7 +61,9 @@ def result_reduce_list_separate(lst: Iterable[Result[T, str]]) -> Tuple[list[T],
 
 
 def result_do(
-    func: Callable[Concatenate[PS], Generator[Result[TR, E], TR, Result[TR, E]]]
+    func: Callable[
+        Concatenate[PS], Generator[Result[TR, E], TR, Result[TR, E]]
+    ]
 ) -> Callable[PS, Result[TR, E]]:
     """
     Example:
@@ -118,7 +129,9 @@ def result_do(
     return wrapper
 
 
-def result_reduce_list_all_ok(lst: Iterable[Result[T, str]]) -> Result[list[T], str]:
+def result_reduce_list_all_ok(
+    lst: Iterable[Result[T, str]]
+) -> Result[list[T], str]:
     oks, errs = result_reduce_list_separate(lst)
     if errs:
         return Err("\n".join(errs))

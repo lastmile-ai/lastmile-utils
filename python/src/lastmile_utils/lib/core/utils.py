@@ -15,12 +15,42 @@ from typing import (
     cast,
 )
 
+import numpy.typing as npt
 from jsoncomment import JsonComment
+from pydantic import BaseModel, ConfigDict
 from result import Err, Ok, Result
+
 from .functional import ErrWithTraceback
 
-
 # Types
+
+# Don't rely on the generic type. Wrong annotation might be missed.
+# Use `Any` to signal that uncertainty explicitly.
+# TODO [P1]: is this useful?
+NPA = npt.NDArray[Any]
+
+ArrayLike = npt.ArrayLike
+
+
+T = TypeVar("T")
+
+
+TR = TypeVar("TR", covariant=True)
+E = TypeVar("E", covariant=True)
+
+
+class Record(BaseModel):
+    model_config = ConfigDict(strict=True, frozen=True)
+
+    def __repr__(self) -> str:
+        return json.dumps(self.model_dump(), indent=2)
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def to_dict(self):
+        return self.model_dump()
+
 
 # Define a JSONValue as a union of common JSON value types
 
@@ -46,12 +76,10 @@ LOGGER_FMT = "[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d: %(message)s"
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(format=LOGGER_FMT)
 
-T = TypeVar("T")
 T2 = TypeVar("T2")
 U2 = TypeVar("U2")
 U = TypeVar("U")
 
-E = TypeVar("E")
 
 Thunk = Callable[[], T]
 ResultThunk = Callable[[], Result[T, E]]
@@ -87,7 +115,9 @@ def write_text_file(path: str | None, contents: str) -> Result[int, str]:
     return path_fn(path)
 
 
-def write_to_text_file_handle(f_handle: IO[str], contents: str) -> Result[int, str]:
+def write_to_text_file_handle(
+    f_handle: IO[str], contents: str
+) -> Result[int, str]:
     try:
         return Ok(f_handle.write(contents))
     except IOError as e:
@@ -220,13 +250,17 @@ def dict_union(
                 result[k] = v
             else:
                 if on_conflict == "err":
-                    return Err(f"Key {k} exists with different values: {v}, {result[k]}.")
+                    return Err(
+                        f"Key {k} exists with different values: {v}, {result[k]}."
+                    )
                 elif on_conflict == "keep_first":
                     pass
                 elif on_conflict == "replace":
                     result[k] = v
                 else:
-                    assert False, f"should be unreachable: invalid {on_conflict=}"
+                    assert (
+                        False
+                    ), f"should be unreachable: invalid {on_conflict=}"
 
     return Ok(result)
 
