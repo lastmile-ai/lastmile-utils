@@ -1,2 +1,1 @@
-# lastmile-utils
-Shared tools for LastMile OSS projects.
+# lastmile_utils shared libraries
