@@ -1,0 +1,27 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.sl": true,
+    "**/yarn.lock": true
+  },
+  "editor.formatOnSave": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.rulers": [79],
+    "editor.formatOnSave": true,
+  },
+  "black-formatter.args": ["--line-length=79"],
+  "eslint.workingDirectories": [
+    "./typescript"
+  ],
+  // example: "--disable=C0114,C0115,C0116"
+  "pylint.args": []
+}
