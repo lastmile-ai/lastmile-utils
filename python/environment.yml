@@ -1,0 +1,9 @@
+name: lastmile_utils
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - cython
+  - pip:
+      - -r requirements.txt
