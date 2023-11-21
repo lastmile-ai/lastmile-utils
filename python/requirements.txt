@@ -1,0 +1,11 @@
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+pytest==7.4.3
+pydantic==2.4.2
+pyright==1.1.335
+pandas==2.1.2
+chardet==5.2.0
+result==0.13.1
+jsoncomment==0.4.2
+pylint==3.0.2
