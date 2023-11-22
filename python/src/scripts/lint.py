@@ -67,8 +67,8 @@ def read_glob_excludes(config_file: str) -> List[str]:
         or not os.access(config_file, os.R_OK)
     ):
         LOGGER.warning(
-            "Could not read glob excludes file: '%s'. "
-            + "Check that the file exists and that it has the correct format.",
+            "Could not read glob excludes file: '%s'. Linting all Python files!\n"
+            "Check that the file exists and that it has the correct format.",
             config_file,
         )
         return []
@@ -139,6 +139,14 @@ def main(argv: List[str]) -> int:
                 cfg.vscode_settings_path,
                 cfg.verbose,
             )
+
+            match final_result:
+                case Ok(code):
+                    LOGGER.info("Done")
+                    return code
+                case Err(e):
+                    LOGGER.critical("err: %s", e)
+                    return cu.result_to_exitcode(Err(e))
             return cu.result_to_exitcode(final_result)
 
 
