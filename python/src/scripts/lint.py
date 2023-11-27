@@ -38,7 +38,11 @@ class ISortCheck(cu.Record):
     line_length: int
 
 
-Check = BlackCheck | PyrightCheck | PylintCheck | ISortCheck
+class AutoflakeCheck(cu.Record):
+    diff_only: bool
+
+
+Check = BlackCheck | PyrightCheck | PylintCheck | ISortCheck | AutoflakeCheck
 
 
 class Config(cu.Record):
@@ -168,6 +172,7 @@ def _get_final_result(
             return line_length.and_then(
                 lambda ll: run_with(  # type: ignore
                     [
+                        AutoflakeCheck(diff_only=False),
                         ISortCheck(line_length=ll),
                         BlackCheck(line_length=ll, diff_only=False),
                     ],
@@ -179,6 +184,7 @@ def _get_final_result(
             return line_length.and_then(
                 lambda ll: run_with(  # type: ignore
                     [
+                        AutoflakeCheck(diff_only=True),
                         BlackCheck(line_length=ll, diff_only=True),
                         PyrightCheck(),
                     ],
@@ -191,6 +197,7 @@ def _get_final_result(
                 lambda pyla: line_length.and_then(  # type: ignore
                     lambda ll: run_with(  # type: ignore
                         [
+                            AutoflakeCheck(diff_only=True),
                             BlackCheck(line_length=ll, diff_only=True),
                             PyrightCheck(),
                             PylintCheck(args=pyla),
@@ -215,6 +222,8 @@ def run_with(
                 return run_with_pylint(files, args, verbose)
             case ISortCheck(line_length=line_length):
                 return run_with_isort(files, line_length)
+            case AutoflakeCheck(diff_only=diff_only):
+                return run_with_autoflake(files, diff_only, verbose)
 
     check_result = cu.result_reduce_list_all_ok(map(_run_with_one, check))
     return check_result.map(cu.combine_returncodes)
@@ -263,6 +272,27 @@ def run_with_isort(files: list[str], line_length: int) -> Result[int, str]:
         "--line-length",
         str(line_length),
     ]
+    code = run_lint_cmd(cmd, files)
+    return Ok(code)
+
+
+def run_with_autoflake(
+    files: list[str], diff_only: bool, verbose: bool
+) -> Result[int, str]:
+    print("Running autoflake")
+    cmd = [
+        "autoflake",
+        "--remove-unused-variables",
+        "--ignore-init-module-imports",
+        "--remove-unused-variables",
+    ]
+    if diff_only:
+        cmd.append("--check-diff")
+    else:
+        cmd.append("--in-place")
+
+    if verbose:
+        cmd.append("-v")
     code = run_lint_cmd(cmd, files)
     return Ok(code)
 
