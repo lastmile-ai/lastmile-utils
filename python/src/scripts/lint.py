@@ -211,8 +211,8 @@ def _get_final_result(
 
 def run_with(
     check: Sequence[Check], files: list[str], verbose: bool
-) -> Result[int, str]:
-    def _run_with_one(check: Check) -> Result[int, str]:
+) -> Result[str, str]:
+    def _run_with_one(check: Check) -> Result[str, str]:
         match check:
             case BlackCheck(line_length=line_length, diff_only=diff_only):
                 return run_with_black(files, line_length, diff_only, verbose)
@@ -225,13 +225,19 @@ def run_with(
             case AutoflakeCheck(diff_only=diff_only):
                 return run_with_autoflake(files, diff_only, verbose)
 
-    check_result = cu.result_reduce_list_all_ok(map(_run_with_one, check))
-    return check_result.map(cu.combine_returncodes)
+    results = list(map(_run_with_one, check))
+    oks, errs = cu.result_reduce_list_separate(results)
+    if errs:
+        ok_msg = "Oks:\n" + "\n".join(oks)
+        err_msg = "Errs:\n" + "\n".join(errs)
+        return Err(f"Some jobs failed:\nOK:{ok_msg}\nErr:{err_msg}")
+    else:
+        return Ok("Done")
 
 
 def run_with_black(
     files: list[str], line_length: int, diff_only: bool, verbose: bool
-) -> Result[int, str]:
+) -> Result[str, str]:
     print("Running black")
 
     cmd = ["black"]
@@ -243,28 +249,31 @@ def run_with_black(
         cmd.append("-v")
 
     code = run_lint_cmd(cmd, files)
-    return Ok(code)
+    # if checking for diff, nonzero exit code doesn't mean linter has failed.
+    return Ok("Done") if diff_only else cu.exitcode_to_result(code)
 
 
-def run_with_pyright(files: list[str]) -> Result[int, str]:
+def run_with_pyright(files: list[str]) -> Result[str, str]:
     print("Running pyright")
     cmd = ["pyright"]
-    code = run_lint_cmd(cmd, files)
-    return Ok(code)
+    run_lint_cmd(cmd, files)
+    # if checking for diff, nonzero exit code doesn't mean linter has failed.
+    return Ok("Done")
 
 
 def run_with_pylint(
     files: list[str], pylint_args: List[str], verbose: bool
-) -> Result[int, str]:
+) -> Result[str, str]:
     print("Running pylint")
     cmd = ["pylint"] + pylint_args
     if verbose:
         cmd.append("-v")
-    code = run_lint_cmd(cmd, files)
-    return Ok(code)
+    run_lint_cmd(cmd, files)
+    # if checking for diff, nonzero exit code doesn't mean linter has failed.
+    return Ok("Done")
 
 
-def run_with_isort(files: list[str], line_length: int) -> Result[int, str]:
+def run_with_isort(files: list[str], line_length: int) -> Result[str, str]:
     print("Running isort")
     cmd = [
         "isort",
@@ -273,7 +282,29 @@ def run_with_isort(files: list[str], line_length: int) -> Result[int, str]:
         str(line_length),
     ]
     code = run_lint_cmd(cmd, files)
-    return Ok(code)
+    return cu.exitcode_to_result(code)
+
+
+def run_with_autoflake(
+    files: list[str], diff_only: bool, verbose: bool
+) -> Result[str, str]:
+    print("Running autoflake")
+    cmd = [
+        "autoflake",
+        "--remove-unused-variables",
+        "--ignore-init-module-imports",
+        "--remove-unused-variables",
+    ]
+    if diff_only:
+        cmd.append("--check-diff")
+    else:
+        cmd.append("--in-place")
+
+    if verbose:
+        cmd.append("-v")
+    code = run_lint_cmd(cmd, files)
+    # if checking for diff, nonzero exit code doesn't mean linter has failed.
+    return Ok("Done") if diff_only else cu.exitcode_to_result(code)
 
 
 def run_with_autoflake(
