@@ -291,7 +291,7 @@ def run_with_autoflake(
     print("Running autoflake")
     cmd = [
         "autoflake",
-        "--remove-unused-variables",
+        "--remove-all-unused-imports",
         "--ignore-init-module-imports",
         "--remove-unused-variables",
     ]
