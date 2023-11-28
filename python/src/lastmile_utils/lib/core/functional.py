@@ -46,6 +46,15 @@ def result_to_exitcode(r: Result[T, str], fail_code: int = 1) -> int:
     return r.map(_ok).unwrap_or(fail_code)
 
 
+def exitcode_to_result(
+    code: int, stdout: str = "", stderr: str = ""
+) -> Result[str, str]:
+    if code == 0:
+        return Ok(f"Ok\n{stdout=}\n{stderr=}")
+    else:
+        return Err(f"Failure: exit code = {code}\n{stdout=}\n{stderr=}")
+
+
 def result_reduce_list_separate(
     lst: Iterable[Result[T, str]]
 ) -> Tuple[list[T], list[str]]:
