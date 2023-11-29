@@ -11,13 +11,14 @@ from typing import (
     Mapping,
     Optional,
     ParamSpec,
+    Type,
     TypeVar,
     cast,
 )
 
 import numpy.typing as npt
 from jsoncomment import JsonComment
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
 
 from .functional import ErrWithTraceback
@@ -363,3 +364,15 @@ def deprefix(s: str, pfx: str) -> str:
         return s[len(pfx) :]  # If true, returns the string without the prefix
     else:
         return s
+
+
+T_Basemodel = TypeVar("T_Basemodel", bound=BaseModel)
+
+
+def safe_validate_pydantic_model(
+    cls: Type[T_Basemodel], data: Any
+) -> Result[T_Basemodel, str]:
+    try:
+        return Ok(cls.model_validate_json(data))
+    except ValidationError as e:
+        return Err(str(e))
