@@ -12,6 +12,7 @@ from typing import (
 
 from result import Err, Ok, Result
 
+
 # Types
 
 PS = ParamSpec("PS")
@@ -29,14 +30,6 @@ def ErrWithTraceback(e: Exception, extra_msg: str = "") -> Result[T, str]:
         extra_msg = f"{extra_msg}"
 
     return Err(f"{extra_msg}\nException:\n{e}\n{traceback.format_exc()}")
-
-
-def print_result(r: Result[T, str]) -> None:
-    match r:
-        case Ok(value):
-            print(f"Ok:\n" + str(value))
-        case Err(msg):
-            print(f"Err:\n" + msg)
 
 
 def result_to_exitcode(r: Result[T, str], fail_code: int = 1) -> int:
