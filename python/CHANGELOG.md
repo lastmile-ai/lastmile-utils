@@ -1,3 +1,7 @@
+# 0.0.6
+
+- Add some miscellaneous small utils + fixes (4334a49be, PR #8)
+
 # 0.0.5
 
 - add mocking module for openai wrapper
