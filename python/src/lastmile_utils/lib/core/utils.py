@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 import time
 from typing import (
     IO,
@@ -11,6 +12,7 @@ from typing import (
     Mapping,
     Optional,
     ParamSpec,
+    Sequence,
     Type,
     TypeVar,
     cast,
@@ -22,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
 
 from .functional import ErrWithTraceback
+
 
 # Types
 
@@ -376,3 +379,34 @@ def safe_validate_pydantic_model(
         return Ok(cls.model_validate_json(data))
     except ValidationError as e:
         return Err(str(e))
+
+
+def unzip(l: Sequence[tuple[T, U]]) -> tuple[list[T], list[U]]:
+    return tuple(zip(*l))  # type: ignore[fixme, return-value]
+
+
+def print_result(
+    r: Result[T, str], to: str | IO[str] | None = None
+) -> Result[int, str]:
+    data = fmt_result(r)
+    match to:
+        case None:
+            return print_result(r, sys.stdout)
+        case IO():
+            return write_to_text_file_handle(to, data)
+        case "stderr":
+            print(r, file=sys.stderr)
+            return Ok(0)
+        case "stdout":
+            print(r, file=sys.stdout)
+            return Ok(0)
+        case _:
+            return write_text_file(to, data)
+
+
+def fmt_result(r: Result[T, str]) -> str:
+    match r:
+        case Ok(value):
+            return f"Ok:\n" + str(value) + "\n"
+        case Err(msg):
+            return f"Err:\n" + msg + "\n"
