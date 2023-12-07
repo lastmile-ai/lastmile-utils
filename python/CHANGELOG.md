@@ -1,3 +1,7 @@
+# 0.0.8
+
+- async result list
+
 # 0.0.7
 
 - Safe file I/O pydantic validation

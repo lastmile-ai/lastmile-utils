@@ -1,6 +1,8 @@
+import asyncio
 import functools
 import traceback
 from typing import (
+    Awaitable,
     Callable,
     Concatenate,
     Generator,
@@ -60,6 +62,18 @@ def result_reduce_list_separate(
                 errs.append(e)
 
     return oks, errs
+
+
+async def result_reduce_list_separate_async(
+    lst: Iterable[Awaitable[Result[T, str]]]
+) -> Tuple[list[T], list[str]]:
+    async def _get_result_value(
+        awaitable: Awaitable[Result[T, str]]
+    ) -> Result[T, str]:
+        return await awaitable
+
+    values = await asyncio.gather(*[_get_result_value(a) for a in lst])
+    return result_reduce_list_separate(values)
 
 
 def result_do(
@@ -135,6 +149,16 @@ def result_reduce_list_all_ok(
     lst: Iterable[Result[T, str]]
 ) -> Result[list[T], str]:
     oks, errs = result_reduce_list_separate(lst)
+    if errs:
+        return Err("\n".join(errs))
+    else:
+        return Ok(oks)
+
+
+async def result_reduce_list_all_ok_async(
+    lst: Iterable[Awaitable[Result[T, str]]]
+) -> Result[list[T], str]:
+    oks, errs = await result_reduce_list_separate_async(lst)
     if errs:
         return Err("\n".join(errs))
     else:
