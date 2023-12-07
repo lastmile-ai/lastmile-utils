@@ -1,3 +1,4 @@
+from functools import partial
 import json
 import logging
 import os
@@ -103,7 +104,7 @@ def read_text_file(path: str | None) -> Result[str, str]:
     """Read a file from a path. Returns the contents of the file as a string or an Err.
     Does not raise.
     """
-    path_fn = _safe_file_io_decorator(read_file_from_handle, "r")
+    path_fn = make_safe_file_io_fn(read_file_from_handle, "r")
     return path_fn(path)
 
 
@@ -115,7 +116,7 @@ def write_text_file(path: str | None, contents: str) -> Result[int, str]:
     def _write(f_handle: IO[str]) -> Result[int, str]:
         return write_to_text_file_handle(f_handle, contents)
 
-    path_fn = _safe_file_io_decorator(_write, "w")
+    path_fn = make_safe_file_io_fn(_write, "w")
     return path_fn(path)
 
 
@@ -128,7 +129,7 @@ def write_to_text_file_handle(
         return ErrWithTraceback(e)
 
 
-def _safe_file_io_decorator(
+def make_safe_file_io_fn(
     f_handle_fn: Callable[[IO[str]], Result[T, str]],
     mode: str,
     encoding: str | None = None,
@@ -410,3 +411,34 @@ def fmt_result(r: Result[T, str]) -> str:
             return f"Ok:\n" + str(value) + "\n"
         case Err(msg):
             return f"Err:\n" + msg + "\n"
+
+
+T_BaseModel = TypeVar("T_BaseModel", bound=BaseModel)
+
+
+def pydantic_model_validate_from_json_file_handle(
+    f_handle: IO[str], basemodel_type: Type[T_BaseModel]
+) -> Result[T_BaseModel, str]:
+    def settings_model_validate_json(s: str) -> Result[basemodel_type, str]:
+        try:
+            return Ok(basemodel_type.model_validate_json(s))
+        except ValueError as e:
+            return ErrWithTraceback(e)
+
+    return read_file_from_handle(f_handle).and_then(
+        settings_model_validate_json
+    )
+
+
+def pydantic_model_validate_from_json_file_path(
+    path: str, basemodel_type: Type[T_BaseModel]
+) -> Result[T_BaseModel, str]:
+    fn = make_safe_file_io_fn(
+        partial(
+            pydantic_model_validate_from_json_file_handle,
+            basemodel_type=basemodel_type,
+        ),
+        "r",
+    )
+
+    return fn(path)
