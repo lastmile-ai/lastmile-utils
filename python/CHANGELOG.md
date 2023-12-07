@@ -1,3 +1,7 @@
+# 0.0.7
+
+- Safe file I/O pydantic validation
+
 # 0.0.6
 
 - Add some miscellaneous small utils + fixes (4334a49be, PR #8)
