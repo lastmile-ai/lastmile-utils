@@ -1,4 +1,5 @@
 from functools import partial
+from hashlib import sha256
 import json
 import logging
 import os
@@ -284,6 +285,10 @@ def enforce_unique(iterable: Iterable[T]) -> Result[T, str]:
 only = enforce_unique
 
 
+def is_unique(iterable: Iterable[T]) -> bool:  # type: ignore[no-untyped-def]
+    return enforce_unique(iterable).is_ok()
+
+
 def dict_map(
     d: Mapping[T, U],
     key_fn: Optional[Callable[[T, U], T2]] = None,
@@ -383,7 +388,7 @@ def safe_validate_pydantic_model(
 
 
 def unzip(l: Sequence[tuple[T, U]]) -> tuple[list[T], list[U]]:
-    return tuple(zip(*l))  # type: ignore[fixme, return-value]
+    return tuple(map(list, zip(*l)))  # type: ignore[fixme, return-value]
 
 
 def print_result(
@@ -442,3 +447,7 @@ def pydantic_model_validate_from_json_file_path(
     )
 
     return fn(path)
+
+
+def hash_id(data: Any) -> str:
+    return sha256(str(data).encode("utf-8")).hexdigest()

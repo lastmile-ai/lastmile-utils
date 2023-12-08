@@ -1,3 +1,7 @@
+# 0.0.9
+
+- hash_id and is_unique
+
 # 0.0.8
 
 - async result list
