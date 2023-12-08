@@ -383,7 +383,7 @@ def safe_validate_pydantic_model(
 
 
 def unzip(l: Sequence[tuple[T, U]]) -> tuple[list[T], list[U]]:
-    return tuple(zip(*l))  # type: ignore[fixme, return-value]
+    return tuple(map(list, zip(*l)))  # type: ignore[fixme, return-value]
 
 
 def print_result(
