@@ -1,3 +1,4 @@
+import asyncio
 from functools import partial
 from hashlib import sha256
 import json
@@ -9,6 +10,7 @@ from typing import (
     IO,
     Any,
     Callable,
+    Coroutine,
     Iterable,
     List,
     Mapping,
@@ -451,3 +453,15 @@ def pydantic_model_validate_from_json_file_path(
 
 def hash_id(data: Any) -> str:
     return sha256(str(data).encode("utf-8")).hexdigest()
+
+
+async def run_thunk_safe(
+    thunk: Coroutine[Any, Any, T], timeout: int
+) -> Result[T, str]:
+    try:
+        task = asyncio.create_task(thunk)
+        res = await asyncio.wait_for(task, timeout=timeout)
+        return Ok(res)
+    except BaseException as e:  # type: ignore
+        # TODO [P1] log
+        return Err(str(e))
