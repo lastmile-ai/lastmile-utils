@@ -1,9 +1,11 @@
 import argparse
+from dataclasses import dataclass
 import logging
 import os
 from enum import EnumMeta
 from types import UnionType
 from typing import Any, Dict, Optional, Set, Type, TypeVar
+import typing
 
 import pydantic
 from dotenv import load_dotenv
@@ -20,35 +22,124 @@ from .utils import (
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class TypeOrigin:
+    origin: type
+    args: list["TypeOrigin"]
+
+
+def _alias_type_to_origin_type(
+    some_type: Type[Any] | type,
+) -> TypeOrigin | None:
+    args = (
+        []
+        if not hasattr(some_type, "__args__")
+        else [
+            _alias_type_to_origin_type(a)
+            for a in getattr(some_type, "__args__")
+        ]
+    )
+    args = [a for a in args if a is not None]
+    constructor = getattr(some_type, "__origin__", some_type)
+    return TypeOrigin(constructor, args)
+
+
+def _get_inside_of_optional_type(
+    some_type: Type[Any] | type,
+) -> Optional[type]:
+    """
+    examples:
+    - Optional[int] -> int
+    - Optional[Optional[list[str]]] -> list
+    - list[str] -> None
+    """
+    origin_type = _alias_type_to_origin_type(some_type)
+    if origin_type is not None and origin_type.origin == typing.Union:
+        type_args = getattr(some_type, "__args__")
+        if not (len(type_args) == 2 and type_args[1] == type(None)):
+            return None
+
+        inside_type = type_args[0]
+        if not hasattr(inside_type, "__origin__"):
+            return inside_type
+        else:
+            return getattr(inside_type, "__origin__")
+
+
+def _parse_log_level(x: int | str) -> int:
+    match x:
+        case int(x_i):
+            return x_i
+        case str(x_s):
+            out = logging.getLevelName(x_s.strip().upper())
+            match out:
+                case int(out_i):
+                    return out_i
+                case _:
+                    msg = "Choices: ['CRITICAL', 'FATAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']"
+                    raise argparse.ArgumentTypeError(msg)
+
+
 def add_parser_argument(
     parser: argparse.ArgumentParser,
     field_name: str,
     field: pydantic.fields.FieldInfo,
     is_required: bool,
 ) -> Optional[str]:
+    return add_parser_argument_helper(
+        parser, field_name, field.annotation, is_required
+    )
+
+
+def add_parser_argument_helper(
+    parser: argparse.ArgumentParser,
+    field_name: str,
+    field_type: Type[Any] | type | None,
+    is_required: bool,
+) -> Optional[str]:
     field_name = field_name.replace("_", "-")
-    the_type = field.annotation
-    if the_type is None:
-        return f"{field_name}: the_type is None"
-    elif the_type is bool:
+    inside_of_optional_type = (
+        _get_inside_of_optional_type(field_type)
+        if field_type is not None
+        else None
+    )
+    if inside_of_optional_type is not None:
+        return add_parser_argument_helper(
+            parser, field_name, inside_of_optional_type, False
+        )
+    elif field_name in ["log-level"]:
+        parser.add_argument(
+            f"--{field_name}",
+            type=_parse_log_level,
+            required=is_required,
+        )
+    elif field_type is None:
+        return f"{field_name}: type is None"
+    elif field_type is bool:
         if is_required:
             return f"(bool) flag cannot be required: field={field_name}"
         parser.add_argument(
             f"--{field_name}",
             action="store_true",
         )
-    elif type(the_type) is UnionType:
+    elif type(field_type) is UnionType:
         return f"UnionType not supported. field={field_name}"
-    elif isinstance(the_type, EnumMeta):
+    elif isinstance(field_type, EnumMeta):
         parser.add_argument(
             f"--{field_name}",
             type=str,
-            choices=[e.value.lower() for e in the_type],  # type: ignore
+            choices=[e.value.lower() for e in field_type],  # type: ignore
+            required=is_required,
+        )
+    elif field_type is list:
+        parser.add_argument(
+            f"--{field_name}",
+            nargs="+",
             required=is_required,
         )
     else:
         parser.add_argument(
-            f"--{field_name}", type=the_type, required=is_required
+            f"--{field_name}", type=field_type, required=is_required
         )
 
 
@@ -119,7 +210,8 @@ def parse_args(
     argv: list[str],
     config_type: Type[T_Record],
 ) -> Result[T_Record, str]:
-    cli_dict = remove_nones(vars(parser.parse_args(argv)))
+    parsed = parser.parse_args(argv)
+    cli_dict = remove_nones(vars(parsed))
     return config_from_primitives(config_type, cli_dict)
 
 
