@@ -1,3 +1,7 @@
+# 0.0.10
+
+- run_thunk_safe: abstract out robust function calling
+
 # 0.0.9
 
 - hash_id and is_unique
