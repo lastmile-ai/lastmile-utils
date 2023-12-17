@@ -26,6 +26,7 @@ import numpy.typing as npt
 from jsoncomment import JsonComment
 from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
+import result
 
 from .functional import ErrWithTraceback
 
@@ -423,17 +424,23 @@ def fmt_result(r: Result[T, str]) -> str:
 T_BaseModel = TypeVar("T_BaseModel", bound=BaseModel)
 
 
+def safe_model_validate_json(
+    s: str, basemodel_type: Type[T_BaseModel]
+) -> Result[T_BaseModel, str]:
+    try:
+        return Ok(basemodel_type.model_validate_json(s))
+    except ValueError as e:
+        return ErrWithTraceback(e)
+
+
 def pydantic_model_validate_from_json_file_handle(
     f_handle: IO[str], basemodel_type: Type[T_BaseModel]
 ) -> Result[T_BaseModel, str]:
-    def settings_model_validate_json(s: str) -> Result[basemodel_type, str]:
-        try:
-            return Ok(basemodel_type.model_validate_json(s))
-        except ValueError as e:
-            return ErrWithTraceback(e)
-
-    return read_file_from_handle(f_handle).and_then(
-        settings_model_validate_json
+    return result.do(
+        safe_model_validate_json(
+            file_contents_ok, basemodel_type=basemodel_type
+        )
+        for file_contents_ok in read_file_from_handle(f_handle)
     )
 
 
