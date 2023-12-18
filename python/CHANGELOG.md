@@ -1,3 +1,9 @@
+# 0.0.12
+
+- [cli] Support log-level
+- [cli] support Optional
+- small lint fixes
+
 # 0.0.11
 
 - pydantic safe_model_validate_json [df49d34e5bdc1b43caf0f8b80d8de4d3909dd740]
