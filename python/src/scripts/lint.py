@@ -51,6 +51,13 @@ class Config(cu.Record):
     files: Optional[List[str]] = None
     vscode_settings_path: str = ".vscode/settings.json"
     path_glob_excludes: str = ".lint_glob_excludes"
+    log_level: int = logging.WARNING
+
+    def __repr__(self) -> str:
+        return "\n".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
+    def __str__(self) -> str:
+        return repr(self)
 
     @field_validator("mode", mode="before")
     def convert_to_mode(  # pylint: disable=no-self-argument
@@ -125,6 +132,8 @@ def main(argv: List[str]) -> int:
             LOGGER.critical("err: %s", e)
             return cu.result_to_exitcode(Err(e))
         case Ok(cfg):
+            LOGGER.setLevel(cfg.log_level)
+            LOGGER.info("cfg: %s", cfg)
             python_files_to_lint = _get_files_to_lint(
                 cfg.files, cfg.path_glob_excludes
             )
@@ -145,9 +154,9 @@ def main(argv: List[str]) -> int:
             )
 
             match final_result:
-                case Ok(code):
-                    LOGGER.info("Done")
-                    return code
+                case Ok(msg):
+                    LOGGER.info("Ok:\n%s", msg)
+                    return 0
                 case Err(e):
                     LOGGER.critical("err: %s", e)
                     return cu.result_to_exitcode(Err(e))
@@ -159,7 +168,7 @@ def _get_final_result(
     python_files_to_lint: list[str],
     vscode_settings_path: str | None,
     verbose: bool,
-) -> Result[int, str]:
+) -> Result[str, str]:
     settings = cu.load_json_file(vscode_settings_path)
     line_length = settings.and_then(_extract_line_length)
     pylint_args = settings.and_then(_get_pylint_args)
@@ -167,7 +176,7 @@ def _get_final_result(
     match mode:
         case Mode.LIST_FILES:
             print("\n".join(python_files_to_lint))
-            return Ok(0)
+            return Ok("Done")
         case Mode.FIX:
             return line_length.and_then(
                 lambda ll: run_with(  # type: ignore
