@@ -4,7 +4,7 @@ import logging
 import os
 from enum import EnumMeta
 from types import UnionType
-from typing import Any, Dict, Optional, Set, Type, TypeVar
+from typing import Any, Dict, Mapping, Optional, Set, Type, TypeVar
 import typing
 
 import pydantic
@@ -148,7 +148,9 @@ def add_parser_arguments(
     fields: dict[str, pydantic.fields.FieldInfo],
     required: Optional[Set[str]] = None,
 ):
-    required = required or set()
+    required = required or {
+        f_name for f_name, f in fields.items() if f.is_required()
+    }
     for field_name, field in fields.items():
         is_required = field_name in required
         res = add_parser_argument(parser, field_name, field, is_required)
@@ -157,10 +159,19 @@ def add_parser_arguments(
 
 
 def argparsify(
-    r: Record | Type[Record], required: Optional[Set[str]] = None
+    r: Record | Type[Record],
+    required: Optional[Set[str]] = None,
+    subparser_rs: Mapping[str, Record | Type[Record]] = {},
 ) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     add_parser_arguments(parser, r.model_fields, required=required)
+
+    if subparser_rs:
+        subparsers = parser.add_subparsers(dest="subparser_name")
+        for subparser_name, subparser_r in subparser_rs.items():
+            subparser = subparsers.add_parser(subparser_name)
+            add_parser_arguments(subparser, subparser_r.model_fields)
+
     return parser
 
 
@@ -203,6 +214,13 @@ def resolve_path(data_root: str, path: str) -> str:
 
 
 T_Record = TypeVar("T_Record", bound=Record)
+
+
+def get_subparser_name(
+    main_parser: argparse.ArgumentParser, argv: list[str]
+) -> str:
+    parsed = main_parser.parse_args(argv)
+    return parsed.subparser_name
 
 
 def parse_args(
