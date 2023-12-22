@@ -381,13 +381,13 @@ def deprefix(s: str, pfx: str) -> str:
 T_Basemodel = TypeVar("T_Basemodel", bound=BaseModel)
 
 
-def safe_validate_pydantic_model(
-    cls: Type[T_Basemodel], data: Any
+def safe_model_validate_json_object(
+    cls: Type[T_Basemodel], data: JSONObject
 ) -> Result[T_Basemodel, str]:
     try:
-        return Ok(cls.model_validate_json(data))
+        return Ok(cls.model_validate(data))
     except ValidationError as e:
-        return Err(str(e))
+        return ErrWithTraceback(e)
 
 
 def unzip(l: Sequence[tuple[T, U]]) -> tuple[list[T], list[U]]:

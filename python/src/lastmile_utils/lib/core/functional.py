@@ -7,6 +7,7 @@ from typing import (
     Concatenate,
     Generator,
     Iterable,
+    Mapping,
     ParamSpec,
     Tuple,
     TypeVar,
@@ -22,11 +23,11 @@ PS = ParamSpec("PS")
 TR = TypeVar("TR", covariant=True)
 E = TypeVar("E", covariant=True)
 
-
+K = TypeVar("K")
 T = TypeVar("T")
 
 
-def ErrWithTraceback(e: Exception, extra_msg: str = "") -> Result[T, str]:
+def ErrWithTraceback(e: Exception, extra_msg: str = "") -> Err[str]:
     if extra_msg:
         extra_msg = extra_msg.rstrip(" :\n")
         extra_msg = f"{extra_msg}"
@@ -62,6 +63,21 @@ def result_reduce_list_separate(
                 errs.append(e)
 
     return oks, errs
+
+
+def result_reduce_dict_separate(
+    dct: Mapping[K, Result[T, str]]
+) -> Tuple[dict[K, T], list[str]]:
+    oks: list[Tuple[K, T]] = []
+    errs: list[str] = []
+    for k, v in dct.items():
+        match v:
+            case Ok(v_):
+                oks.append((k, v_))
+            case Err(e):
+                errs.append(e)
+
+    return dict(oks), errs
 
 
 async def result_reduce_list_separate_async(
@@ -149,6 +165,16 @@ def result_reduce_list_all_ok(
     lst: Iterable[Result[T, str]]
 ) -> Result[list[T], str]:
     oks, errs = result_reduce_list_separate(lst)
+    if errs:
+        return Err("\n".join(errs))
+    else:
+        return Ok(oks)
+
+
+def result_reduce_dict_all_ok(
+    dct: Mapping[K, Result[T, str]]
+) -> Result[dict[K, T], str]:
+    oks, errs = result_reduce_dict_separate(dct)
     if errs:
         return Err("\n".join(errs))
     else:

@@ -1,3 +1,10 @@
+# 0.0.14
+
+- result dict reduce
+- formatting
+- pydantic safe validate from obj
+- subparser nit
+
 # 0.0.13
 
 - argparsify subparsers
