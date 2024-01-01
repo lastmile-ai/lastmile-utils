@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "lastmile_utils"
-version = "0.0.16"
+version = "0.0.17"
 authors = [
     { name="Jonathan Lessinger", email="jonathan@lastmileai.dev" },
 ]

@@ -54,7 +54,8 @@ def exitcode_to_result(
 def result_reduce_list_separate(
     lst: Iterable[Result[T, str]]
 ) -> Tuple[list[T], list[str]]:
-    oks, errs = [], []
+    oks: list[T] = []
+    errs: list[str] = []
     for item in lst:
         match item:
             case Ok(x):

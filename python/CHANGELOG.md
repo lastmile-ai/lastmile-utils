@@ -1,3 +1,7 @@
+# 0.0.17
+
+- pyright stricter + fix
+
 # 0.0.16
 
 - Bump result to 0.16.0

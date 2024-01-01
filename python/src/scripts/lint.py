@@ -5,7 +5,7 @@ import shlex
 import subprocess
 import sys
 from enum import Enum
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 import lastmile_utils.lib.core.api as cu
 from pydantic import field_validator
@@ -16,7 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Mode(Enum):
     FIX = "FIX"
-    LIST_FILES = "LIST_FILES"
+    list_FILES = "list_FILES"
     CHECK_FAST = "CHECK_FAST"
     CHECK = "CHECK"
 
@@ -31,7 +31,7 @@ class PyrightCheck(cu.Record):
 
 
 class PylintCheck(cu.Record):
-    args: List[str]
+    args: list[str]
 
 
 class ISortCheck(cu.Record):
@@ -48,7 +48,7 @@ Check = BlackCheck | PyrightCheck | PylintCheck | ISortCheck | AutoflakeCheck
 class Config(cu.Record):
     mode: Mode = Mode.CHECK_FAST
     verbose: bool = False
-    files: Optional[List[str]] = None
+    files: Optional[list[str]] = None
     vscode_settings_path: str = ".vscode/settings.json"
     path_glob_excludes: str = ".lint_glob_excludes"
     log_level: int = logging.WARNING
@@ -71,7 +71,7 @@ class Config(cu.Record):
         return value
 
 
-def read_glob_excludes(config_file: str) -> List[str]:
+def read_glob_excludes(config_file: str) -> list[str]:
     if (
         not config_file
         or not os.path.isfile(config_file)
@@ -89,12 +89,12 @@ def read_glob_excludes(config_file: str) -> List[str]:
         return out
 
 
-def get_python_files() -> List[str]:
+def get_python_files() -> list[str]:
     return glob.glob("./**/*.py", recursive=True)
 
 
-def get_files_exclude(glob_excludes: List[str]) -> List[str]:
-    out = []
+def get_files_exclude(glob_excludes: list[str]) -> list[str]:
+    out: list[str] = []
     for g in glob_excludes:
         paths = glob.glob(g, recursive=True)
         out += paths
@@ -103,13 +103,13 @@ def get_files_exclude(glob_excludes: List[str]) -> List[str]:
 
 
 def get_files_without_excludes(
-    files: List[str], files_exclude: List[str]
-) -> List[str]:
+    files: list[str], files_exclude: list[str]
+) -> list[str]:
     files_exclude_norm = [os.path.realpath(f) for f in files_exclude]
     return [f for f in files if os.path.realpath(f) not in files_exclude_norm]
 
 
-def run_lint_cmd(cmd: Union[str, List[str]], files: List[str]) -> int:
+def run_lint_cmd(cmd: Union[str, list[str]], files: list[str]) -> int:
     if isinstance(cmd, str):
         cmd = shlex.split(cmd)
     run_output = subprocess.run(
@@ -123,7 +123,7 @@ def run_lint_cmd(cmd: Union[str, List[str]], files: List[str]) -> int:
     return run_output.returncode
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     parser = cu.argparsify(Config)
     res_cfg = cu.parse_args(parser, argv[1:], Config)
 
@@ -174,7 +174,7 @@ def _get_final_result(
     pylint_args = settings.and_then(_get_pylint_args)
 
     match mode:
-        case Mode.LIST_FILES:
+        case Mode.list_FILES:
             print("\n".join(python_files_to_lint))
             return Ok("Done")
         case Mode.FIX:
@@ -271,7 +271,7 @@ def run_with_pyright(files: list[str]) -> Result[str, str]:
 
 
 def run_with_pylint(
-    files: list[str], pylint_args: List[str], verbose: bool
+    files: list[str], pylint_args: list[str], verbose: bool
 ) -> Result[str, str]:
     print("Running pylint")
     cmd = ["pylint"] + pylint_args
@@ -318,7 +318,7 @@ def run_with_autoflake(
 
 def _get_files_to_lint(
     files: list[str] | None, path_glob_excludes: str
-) -> List[str]:
+) -> list[str]:
     files = files if files is not None else get_python_files()
     files_before_excludes = list(map(cu.normalize_path, files))
     glob_excludes = read_glob_excludes(path_glob_excludes)
@@ -334,8 +334,8 @@ def _get_files_to_lint(
 
 
 def lint_only(
-    pylint_args: List[str],
-    python_files_to_lint: List[str],
+    pylint_args: list[str],
+    python_files_to_lint: list[str],
     verbose: bool,
     line_length: int,
 ) -> Result[int, str]:
@@ -359,7 +359,7 @@ def lint_only(
 
 
 def _extract_line_length(settings: cu.JSONObject) -> Result[int, str]:
-    black_args: List[str] = settings.get(
+    black_args: list[str] = settings.get(
         "black-formatter.args", []
     )  # type: ignore
     for arg in black_args:
@@ -368,7 +368,7 @@ def _extract_line_length(settings: cu.JSONObject) -> Result[int, str]:
     return Err("Could not find line length in settings")
 
 
-def _get_pylint_args(settings: cu.JSONObject) -> Result[List[str], str]:
+def _get_pylint_args(settings: cu.JSONObject) -> Result[list[str], str]:
     if "pylint.args" in settings:
         return Ok(settings["pylint.args"])  # type: ignore
     else:

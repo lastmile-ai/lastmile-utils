@@ -4,9 +4,6 @@
   "exclude": ["python/build", "python/dist"],
   "ignore": [],
   "venv": "lastmile_utils",
-  "pythonVersion": "3.12",
-  "reportUnknownMemberType": false,
-  "reportUnknownVariableType": false,
-  "reportUnknownArgumentType": false,
+  "pythonVersion": "3.10",
   "reportMissingTypeStubs": false
 }

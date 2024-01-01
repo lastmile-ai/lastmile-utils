@@ -14,7 +14,6 @@ from typing import (
     Coroutine,
     Generic,
     Iterable,
-    List,
     Mapping,
     Optional,
     ParamSpec,
@@ -69,9 +68,9 @@ class Record(BaseModel):
 JSONPrimitive = str | int | bool | float | None
 
 JSONDict = dict[str, "JSONValue"]
-JSONList = list["JSONValue"]
+JSONlist = list["JSONValue"]
 
-JSONValue = JSONPrimitive | JSONList | JSONDict
+JSONValue = JSONPrimitive | JSONlist | JSONDict
 
 JSONObject = JSONDict
 
@@ -130,7 +129,9 @@ def write_text_file(path: str | None, contents: str) -> Result[int, str]:
     return path_fn(path)
 
 
-def write_to_text_file_handle(f_handle: IO[str], contents: str) -> Result[int, str]:
+def write_to_text_file_handle(
+    f_handle: IO[str], contents: str
+) -> Result[int, str]:
     try:
         return Ok(f_handle.write(contents))
     except IOError as e:
@@ -172,13 +173,13 @@ def make_safe_file_io_fn(
     return _text_path_handler
 
 
-def flatten_list(list_of_lists: List[List[T]]) -> List[T]:
+def flatten_list(list_of_lists: list[list[T]]) -> list[T]:
     return [item for sublist in list_of_lists for item in sublist]
 
 
-def unflatten_iterable(it: Iterable[T], chunk_size: int) -> List[List[T]]:
-    """Inverse of flatten_list. Chunks an iterable into a 2d List. Output can be jagged, not padded."""
-    out = [[]]
+def unflatten_iterable(it: Iterable[T], chunk_size: int) -> list[list[T]]:
+    """Inverse of flatten_list. Chunks an iterable into a 2d list. Output can be jagged, not padded."""
+    out: list[list[T]] = [[]]
     for x in it:
         if len(out[-1]) == chunk_size:
             out.append([])
@@ -271,7 +272,9 @@ def dict_union(
                 elif on_conflict == "replace":
                     result[k] = v
                 else:
-                    assert False, f"should be unreachable: invalid {on_conflict=}"
+                    assert (
+                        False
+                    ), f"should be unreachable: invalid {on_conflict=}"
 
     return Ok(result)
 
@@ -356,7 +359,8 @@ def load_json(json_str: str) -> Result[JSONObject, str]:
     Returns: deserialized JSON or Err if invalid"""
     parser = JsonComment()
     try:
-        return Ok(parser.loads(json_str))
+        loaded = cast(JSONObject, parser.loads(json_str))  # type: ignore
+        return Ok(loaded)
     except json.JSONDecodeError as e:
         return ErrWithTraceback(e)
 
@@ -439,7 +443,9 @@ def pydantic_model_validate_from_json_file_handle(
     f_handle: IO[str], basemodel_type: Type[T_BaseModel]
 ) -> Result[T_BaseModel, str]:
     return result.do(
-        safe_model_validate_json(file_contents_ok, basemodel_type=basemodel_type)
+        safe_model_validate_json(
+            file_contents_ok, basemodel_type=basemodel_type
+        )
         for file_contents_ok in read_file_from_handle(f_handle)
     )
 
@@ -462,7 +468,9 @@ def hash_id(data: Any) -> str:
     return sha256(str(data).encode("utf-8")).hexdigest()
 
 
-async def run_thunk_safe(thunk: Coroutine[Any, Any, T], timeout: int) -> Result[T, str]:
+async def run_thunk_safe(
+    thunk: Coroutine[Any, Any, T], timeout: int
+) -> Result[T, str]:
     try:
         task = asyncio.create_task(thunk)
         res = await asyncio.wait_for(task, timeout=timeout)
