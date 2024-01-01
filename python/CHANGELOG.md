@@ -1,3 +1,12 @@
+# 0.0.16
+
+- Bump result to 0.16.0
+- Decorator safe_run_fn_async
+
+# 0.0.15
+
+- ?
+
 # 0.0.14
 
 - result dict reduce
