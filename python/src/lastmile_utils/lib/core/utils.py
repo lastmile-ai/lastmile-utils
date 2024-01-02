@@ -68,9 +68,9 @@ class Record(BaseModel):
 JSONPrimitive = str | int | bool | float | None
 
 JSONDict = dict[str, "JSONValue"]
-JSONlist = list["JSONValue"]
+JSONList = list["JSONValue"]
 
-JSONValue = JSONPrimitive | JSONlist | JSONDict
+JSONValue = JSONPrimitive | JSONList | JSONDict
 
 JSONObject = JSONDict
 
@@ -129,9 +129,7 @@ def write_text_file(path: str | None, contents: str) -> Result[int, str]:
     return path_fn(path)
 
 
-def write_to_text_file_handle(
-    f_handle: IO[str], contents: str
-) -> Result[int, str]:
+def write_to_text_file_handle(f_handle: IO[str], contents: str) -> Result[int, str]:
     try:
         return Ok(f_handle.write(contents))
     except IOError as e:
@@ -272,9 +270,7 @@ def dict_union(
                 elif on_conflict == "replace":
                     result[k] = v
                 else:
-                    assert (
-                        False
-                    ), f"should be unreachable: invalid {on_conflict=}"
+                    assert False, f"should be unreachable: invalid {on_conflict=}"
 
     return Ok(result)
 
@@ -443,9 +439,7 @@ def pydantic_model_validate_from_json_file_handle(
     f_handle: IO[str], basemodel_type: Type[T_BaseModel]
 ) -> Result[T_BaseModel, str]:
     return result.do(
-        safe_model_validate_json(
-            file_contents_ok, basemodel_type=basemodel_type
-        )
+        safe_model_validate_json(file_contents_ok, basemodel_type=basemodel_type)
         for file_contents_ok in read_file_from_handle(f_handle)
     )
 
@@ -468,9 +462,7 @@ def hash_id(data: Any) -> str:
     return sha256(str(data).encode("utf-8")).hexdigest()
 
 
-async def run_thunk_safe(
-    thunk: Coroutine[Any, Any, T], timeout: int
-) -> Result[T, str]:
+async def run_thunk_safe(thunk: Coroutine[Any, Any, T], timeout: int) -> Result[T, str]:
     try:
         task = asyncio.create_task(thunk)
         res = await asyncio.wait_for(task, timeout=timeout)

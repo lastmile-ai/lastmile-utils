@@ -1,3 +1,7 @@
+# 0.0.18
+
+- misc fixes
+
 # 0.0.17
 
 - pyright stricter + fix

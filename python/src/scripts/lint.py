@@ -5,10 +5,10 @@ import shlex
 import subprocess
 import sys
 from enum import Enum
-from typing import Any, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
-import lastmile_utils.lib.core.api as cu
-from pydantic import field_validator
+
+import lastmile_utils.lib.core.api as core_utils
 from result import Err, Ok, Result
 
 LOGGER = logging.getLogger(__name__)
@@ -16,36 +16,36 @@ LOGGER = logging.getLogger(__name__)
 
 class Mode(Enum):
     FIX = "FIX"
-    list_FILES = "list_FILES"
+    LIST_FILES = "LIST_FILES"
     CHECK_FAST = "CHECK_FAST"
     CHECK = "CHECK"
 
 
-class BlackCheck(cu.Record):
+class BlackCheck(core_utils.Record):
     line_length: int
     diff_only: bool
 
 
-class PyrightCheck(cu.Record):
+class PyrightCheck(core_utils.Record):
     pass
 
 
-class PylintCheck(cu.Record):
+class PylintCheck(core_utils.Record):
     args: list[str]
 
 
-class ISortCheck(cu.Record):
+class ISortCheck(core_utils.Record):
     line_length: int
 
 
-class AutoflakeCheck(cu.Record):
+class AutoflakeCheck(core_utils.Record):
     diff_only: bool
 
 
 Check = BlackCheck | PyrightCheck | PylintCheck | ISortCheck | AutoflakeCheck
 
 
-class Config(cu.Record):
+class Config(core_utils.Record, core_utils.EnumValidatedRecordMixin):
     mode: Mode = Mode.CHECK_FAST
     verbose: bool = False
     files: Optional[list[str]] = None
@@ -58,17 +58,6 @@ class Config(cu.Record):
 
     def __str__(self) -> str:
         return repr(self)
-
-    @field_validator("mode", mode="before")
-    def convert_to_mode(  # pylint: disable=no-self-argument
-        cls, value: Any
-    ) -> Mode:
-        if isinstance(value, str):
-            try:
-                return Mode[value.upper()]
-            except KeyError as e:
-                raise ValueError(f"Unexpected value for mode: {value}") from e
-        return value
 
 
 def read_glob_excludes(config_file: str) -> list[str]:
@@ -124,13 +113,13 @@ def run_lint_cmd(cmd: Union[str, list[str]], files: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = cu.argparsify(Config)
-    res_cfg = cu.parse_args(parser, argv[1:], Config)
+    parser = core_utils.argparsify(Config)
+    res_cfg = core_utils.parse_args(parser, argv[1:], Config)
 
     match res_cfg:
         case Err(e):
             LOGGER.critical("err: %s", e)
-            return cu.result_to_exitcode(Err(e))
+            return core_utils.result_to_exitcode(Err(e))
         case Ok(cfg):
             LOGGER.setLevel(cfg.log_level)
             LOGGER.info("cfg: %s", cfg)
@@ -159,8 +148,8 @@ def main(argv: list[str]) -> int:
                     return 0
                 case Err(e):
                     LOGGER.critical("err: %s", e)
-                    return cu.result_to_exitcode(Err(e))
-            return cu.result_to_exitcode(final_result)
+                    return core_utils.result_to_exitcode(Err(e))
+            return core_utils.result_to_exitcode(final_result)
 
 
 def _get_final_result(
@@ -169,12 +158,12 @@ def _get_final_result(
     vscode_settings_path: str | None,
     verbose: bool,
 ) -> Result[str, str]:
-    settings = cu.load_json_file(vscode_settings_path)
+    settings = core_utils.load_json_file(vscode_settings_path)
     line_length = settings.and_then(_extract_line_length)
     pylint_args = settings.and_then(_get_pylint_args)
 
     match mode:
-        case Mode.list_FILES:
+        case Mode.LIST_FILES:
             print("\n".join(python_files_to_lint))
             return Ok("Done")
         case Mode.FIX:
@@ -235,7 +224,7 @@ def run_with(
                 return run_with_autoflake(files, diff_only, verbose)
 
     results = list(map(_run_with_one, check))
-    oks, errs = cu.result_reduce_list_separate(results)
+    oks, errs = core_utils.result_reduce_list_separate(results)
     if errs:
         ok_msg = "Oks:\n" + "\n".join(oks)
         err_msg = "Errs:\n" + "\n".join(errs)
@@ -259,7 +248,7 @@ def run_with_black(
 
     code = run_lint_cmd(cmd, files)
     # if checking for diff, nonzero exit code doesn't mean linter has failed.
-    return Ok("Done") if diff_only else cu.exitcode_to_result(code)
+    return Ok("Done") if diff_only else core_utils.exitcode_to_result(code)
 
 
 def run_with_pyright(files: list[str]) -> Result[str, str]:
@@ -291,7 +280,7 @@ def run_with_isort(files: list[str], line_length: int) -> Result[str, str]:
         str(line_length),
     ]
     code = run_lint_cmd(cmd, files)
-    return cu.exitcode_to_result(code)
+    return core_utils.exitcode_to_result(code)
 
 
 def run_with_autoflake(
@@ -313,17 +302,17 @@ def run_with_autoflake(
         cmd.append("-v")
     code = run_lint_cmd(cmd, files)
     # if checking for diff, nonzero exit code doesn't mean linter has failed.
-    return Ok("Done") if diff_only else cu.exitcode_to_result(code)
+    return Ok("Done") if diff_only else core_utils.exitcode_to_result(code)
 
 
 def _get_files_to_lint(
     files: list[str] | None, path_glob_excludes: str
 ) -> list[str]:
     files = files if files is not None else get_python_files()
-    files_before_excludes = list(map(cu.normalize_path, files))
+    files_before_excludes = list(map(core_utils.normalize_path, files))
     glob_excludes = read_glob_excludes(path_glob_excludes)
     files_exclude = list(
-        map(cu.normalize_path, get_files_exclude(glob_excludes))
+        map(core_utils.normalize_path, get_files_exclude(glob_excludes))
     )
 
     python_files_to_lint = list(
@@ -354,11 +343,11 @@ def lint_only(
         black_cmd.append("-v")
 
     black_code = run_lint_cmd(black_cmd, python_files_to_lint)
-    returncode = cu.combine_returncodes([pylint_code, black_code])
+    returncode = core_utils.combine_returncodes([pylint_code, black_code])
     return Ok(returncode)
 
 
-def _extract_line_length(settings: cu.JSONObject) -> Result[int, str]:
+def _extract_line_length(settings: core_utils.JSONObject) -> Result[int, str]:
     black_args: list[str] = settings.get(
         "black-formatter.args", []
     )  # type: ignore
@@ -368,7 +357,9 @@ def _extract_line_length(settings: cu.JSONObject) -> Result[int, str]:
     return Err("Could not find line length in settings")
 
 
-def _get_pylint_args(settings: cu.JSONObject) -> Result[list[str], str]:
+def _get_pylint_args(
+    settings: core_utils.JSONObject,
+) -> Result[list[str], str]:
     if "pylint.args" in settings:
         return Ok(settings["pylint.args"])  # type: ignore
     else:
