@@ -2,7 +2,7 @@ import argparse
 from dataclasses import dataclass
 import logging
 import os
-from enum import EnumMeta
+from enum import Enum, EnumMeta
 from types import UnionType
 from typing import Any, Dict, Mapping, Optional, Set, Type, TypeVar
 import typing
@@ -223,3 +223,45 @@ def config_from_primitives(
         return Ok(config_type.model_validate(cli_dict))
     except pydantic.ValidationError as e:
         return ErrWithTraceback(e, "Invalid args")
+
+
+T_Enum = TypeVar("T_Enum", bound=Enum)
+
+
+def validate_enum_field_value(value: Any, field_type: Type[T_Enum]) -> T_Enum:
+    if isinstance(value, str):
+        try:
+            out = field_type[value.upper()]
+            return out
+        except KeyError as e:
+            raise ValueError(
+                f"Unexpected value for {field_type.__name__}: {value}"
+            ) from e
+    elif not isinstance(value, field_type):
+        raise ValueError(
+            f"Unexpected type for {field_type.__name__}: {value}, {type(value)}"
+        )
+    else:
+        return value
+
+
+class EnumValidatedRecordMixin(pydantic.BaseModel):
+    @pydantic.root_validator(pre=True)
+    def check_enum_fields(cls, values: dict[str, Any]) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for field_name, value in values.items():
+            if field_name not in cls.model_fields:
+                # This can happen if an extra field is given.
+                # In this case, if all the other fields are valid,
+                # Pydantic actually allows this and ignores the extra field.
+                # Here, we're just checking Enum fields, so we can ignore this
+                # field and continue to validate the other fields.
+                continue
+            field: pydantic.fields.FieldInfo = cls.model_fields[field_name]
+            _type = field.annotation
+            if isinstance(_type, EnumMeta):
+                out[field_name] = validate_enum_field_value(value, _type)
+            else:
+                out[field_name] = value
+
+        return out

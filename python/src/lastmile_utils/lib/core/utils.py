@@ -14,7 +14,6 @@ from typing import (
     Coroutine,
     Generic,
     Iterable,
-    List,
     Mapping,
     Optional,
     ParamSpec,
@@ -172,13 +171,13 @@ def make_safe_file_io_fn(
     return _text_path_handler
 
 
-def flatten_list(list_of_lists: List[List[T]]) -> List[T]:
+def flatten_list(list_of_lists: list[list[T]]) -> list[T]:
     return [item for sublist in list_of_lists for item in sublist]
 
 
-def unflatten_iterable(it: Iterable[T], chunk_size: int) -> List[List[T]]:
-    """Inverse of flatten_list. Chunks an iterable into a 2d List. Output can be jagged, not padded."""
-    out = [[]]
+def unflatten_iterable(it: Iterable[T], chunk_size: int) -> list[list[T]]:
+    """Inverse of flatten_list. Chunks an iterable into a 2d list. Output can be jagged, not padded."""
+    out: list[list[T]] = [[]]
     for x in it:
         if len(out[-1]) == chunk_size:
             out.append([])
@@ -356,7 +355,8 @@ def load_json(json_str: str) -> Result[JSONObject, str]:
     Returns: deserialized JSON or Err if invalid"""
     parser = JsonComment()
     try:
-        return Ok(parser.loads(json_str))
+        loaded = cast(JSONObject, parser.loads(json_str))  # type: ignore
+        return Ok(loaded)
     except json.JSONDecodeError as e:
         return ErrWithTraceback(e)
 
