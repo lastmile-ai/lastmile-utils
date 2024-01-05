@@ -129,7 +129,9 @@ def write_text_file(path: str | None, contents: str) -> Result[int, str]:
     return path_fn(path)
 
 
-def write_to_text_file_handle(f_handle: IO[str], contents: str) -> Result[int, str]:
+def write_to_text_file_handle(
+    f_handle: IO[str], contents: str
+) -> Result[int, str]:
     try:
         return Ok(f_handle.write(contents))
     except IOError as e:
@@ -270,7 +272,9 @@ def dict_union(
                 elif on_conflict == "replace":
                     result[k] = v
                 else:
-                    assert False, f"should be unreachable: invalid {on_conflict=}"
+                    assert (
+                        False
+                    ), f"should be unreachable: invalid {on_conflict=}"
 
     return Ok(result)
 
@@ -439,7 +443,9 @@ def pydantic_model_validate_from_json_file_handle(
     f_handle: IO[str], basemodel_type: Type[T_BaseModel]
 ) -> Result[T_BaseModel, str]:
     return result.do(
-        safe_model_validate_json(file_contents_ok, basemodel_type=basemodel_type)
+        safe_model_validate_json(
+            file_contents_ok, basemodel_type=basemodel_type
+        )
         for file_contents_ok in read_file_from_handle(f_handle)
     )
 
@@ -462,7 +468,9 @@ def hash_id(data: Any) -> str:
     return sha256(str(data).encode("utf-8")).hexdigest()
 
 
-async def run_thunk_safe(thunk: Coroutine[Any, Any, T], timeout: int) -> Result[T, str]:
+async def run_thunk_safe(
+    thunk: Coroutine[Any, Any, T], timeout: int
+) -> Result[T, str]:
     try:
         task = asyncio.create_task(thunk)
         res = await asyncio.wait_for(task, timeout=timeout)
@@ -474,11 +482,25 @@ async def run_thunk_safe(thunk: Coroutine[Any, Any, T], timeout: int) -> Result[
 
 class UnsafeFn(Protocol, Generic[P, T_Output]):
     @abstractmethod
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_Output:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_Output:
         pass
 
 
 class SafeFn(Protocol, Generic[P, T_Output]):
+    @abstractmethod
+    def __call__(
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Result[T_Output, str]:
+        pass
+
+
+class UnsafeFnAsync(Protocol, Generic[P, T_Output]):
+    @abstractmethod
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_Output:
+        pass
+
+
+class SafeFnAsync(Protocol, Generic[P, T_Output]):
     @abstractmethod
     async def __call__(
         self, *args: P.args, **kwargs: P.kwargs
@@ -486,10 +508,23 @@ class SafeFn(Protocol, Generic[P, T_Output]):
         pass
 
 
-def safe_run_fn_async(fn: UnsafeFn[P, T_Output]) -> SafeFn[P, T_Output]:
+def safe_run_fn_async(
+    fn: UnsafeFnAsync[P, T_Output]
+) -> SafeFnAsync[P, T_Output]:
     async def _fn(*args: P.args, **kwargs: P.kwargs) -> Result[T_Output, str]:
         try:
             out = await fn(*args, **kwargs)
+            return Ok(out)
+        except Exception as e:
+            return ErrWithTraceback(e)
+
+    return _fn
+
+
+def safe_run_fn(fn: UnsafeFn[P, T_Output]) -> SafeFn[P, T_Output]:
+    def _fn(*args: P.args, **kwargs: P.kwargs) -> Result[T_Output, str]:
+        try:
+            out = fn(*args, **kwargs)
             return Ok(out)
         except Exception as e:
             return ErrWithTraceback(e)

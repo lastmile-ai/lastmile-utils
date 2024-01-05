@@ -1,3 +1,7 @@
+# 0.0.19
+
+- safe_run_fn
+
 # 0.0.18
 
 - misc fixes
