@@ -84,8 +84,23 @@ U_Callable = TypeVar("U_Callable", bound=Callable[..., Any])
 
 LOGGER_FMT = "[%(levelname)s] %(asctime)s %(filename)s:%(lineno)d: %(message)s"
 
-LOGGER = logging.getLogger(__name__)
-logging.basicConfig(format=LOGGER_FMT)
+
+def get_logger(
+    module_name: str,
+    log_level: str | int = logging.WARNING,
+    log_file_path: str = "log.txt",
+) -> logging.Logger:
+    logging.basicConfig(format=LOGGER_FMT)
+
+    logger = logging.getLogger(module_name)
+    logger.setLevel(log_level)
+    log_handler = logging.FileHandler(log_file_path, mode="a")
+    formatter = logging.Formatter(LOGGER_FMT)
+    log_handler.setFormatter(formatter)
+
+    logger.addHandler(log_handler)
+    return logger
+
 
 T2 = TypeVar("T2")
 U2 = TypeVar("U2")

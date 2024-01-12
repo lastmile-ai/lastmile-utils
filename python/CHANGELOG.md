@@ -1,3 +1,7 @@
+# 0.0.20
+
+- get_logger
+
 # 0.0.19
 
 - safe_run_fn
