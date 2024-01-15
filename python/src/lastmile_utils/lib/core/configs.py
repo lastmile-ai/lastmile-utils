@@ -34,7 +34,10 @@ def _alias_type_to_origin_type(
     args = (
         []
         if not hasattr(some_type, "__args__")
-        else [_alias_type_to_origin_type(a) for a in getattr(some_type, "__args__")]
+        else [
+            _alias_type_to_origin_type(a)
+            for a in getattr(some_type, "__args__")
+        ]
     )
     args = [a for a in args if a is not None]
     constructor = getattr(some_type, "__origin__", some_type)
@@ -83,7 +86,9 @@ def add_parser_argument(
     field: pydantic.fields.FieldInfo,
     is_required: bool,
 ) -> Optional[str]:
-    return add_parser_argument_helper(parser, field_name, field.annotation, is_required)
+    return add_parser_argument_helper(
+        parser, field_name, field.annotation, is_required
+    )
 
 
 def add_parser_argument_helper(
@@ -94,7 +99,9 @@ def add_parser_argument_helper(
 ) -> Optional[str]:
     field_name = field_name.replace("_", "-")
     inside_of_optional_type = (
-        _get_inside_of_optional_type(field_type) if field_type is not None else None
+        _get_inside_of_optional_type(field_type)
+        if field_type is not None
+        else None
     )
     if inside_of_optional_type is not None:
         return add_parser_argument_helper(
@@ -131,7 +138,9 @@ def add_parser_argument_helper(
             required=is_required,
         )
     else:
-        parser.add_argument(f"--{field_name}", type=field_type, required=is_required)
+        parser.add_argument(
+            f"--{field_name}", type=field_type, required=is_required
+        )
 
 
 def add_parser_arguments(
@@ -139,7 +148,9 @@ def add_parser_arguments(
     fields: dict[str, pydantic.fields.FieldInfo],
     required: Optional[Set[str]] = None,
 ):
-    required = required or {f_name for f_name, f in fields.items() if f.is_required()}
+    required = required or {
+        f_name for f_name, f in fields.items() if f.is_required()
+    }
     for field_name, field in fields.items():
         is_required = field_name in required
         res = add_parser_argument(parser, field_name, field, is_required)
@@ -164,7 +175,9 @@ def argparsify(
     return parser
 
 
-def get_config_args(args: argparse.Namespace | Dict[str, Any]) -> Dict[str, Any]:
+def get_config_args(
+    args: argparse.Namespace | Dict[str, Any]
+) -> Dict[str, Any]:
     def _get_cli():
         if isinstance(args, argparse.Namespace):
             return vars(args)
@@ -183,7 +196,9 @@ def get_config_args(args: argparse.Namespace | Dict[str, Any]) -> Dict[str, Any]
     env_values = remove_nones({k: os.getenv(v) for k, v in env_keys.items()})
     cli_values = remove_nones(_get_cli())
 
-    all_args = dict_union_allow_replace(env_values, cli_values, on_conflict="replace")
+    all_args = dict_union_allow_replace(
+        env_values, cli_values, on_conflict="replace"
+    )
     return all_args
 
 
@@ -201,7 +216,9 @@ def resolve_path(data_root: str, path: str) -> str:
 T_Record = TypeVar("T_Record", bound=Record)
 
 
-def get_subparser_name(main_parser: argparse.ArgumentParser, argv: list[str]) -> str:
+def get_subparser_name(
+    main_parser: argparse.ArgumentParser, argv: list[str]
+) -> str:
     parsed = main_parser.parse_args(argv)
     return parsed.subcommand
 

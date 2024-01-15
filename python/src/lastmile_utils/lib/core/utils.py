@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import asyncio
 from functools import partial
 from hashlib import sha256
@@ -12,12 +11,10 @@ from typing import (
     Any,
     Callable,
     Coroutine,
-    Generic,
     Iterable,
     Mapping,
     Optional,
     ParamSpec,
-    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -30,7 +27,9 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
 import result
 
-from .functional import ErrWithTraceback
+from .functional import (
+    ErrWithTraceback,
+)
 
 
 # Types
@@ -493,55 +492,3 @@ async def run_thunk_safe(
     except BaseException as e:  # type: ignore
         # TODO [P1] log
         return Err(str(e))
-
-
-class UnsafeFn(Protocol, Generic[P, T_Output]):
-    @abstractmethod
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_Output:
-        pass
-
-
-class SafeFn(Protocol, Generic[P, T_Output]):
-    @abstractmethod
-    def __call__(
-        self, *args: P.args, **kwargs: P.kwargs
-    ) -> Result[T_Output, str]:
-        pass
-
-
-class UnsafeFnAsync(Protocol, Generic[P, T_Output]):
-    @abstractmethod
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T_Output:
-        pass
-
-
-class SafeFnAsync(Protocol, Generic[P, T_Output]):
-    @abstractmethod
-    async def __call__(
-        self, *args: P.args, **kwargs: P.kwargs
-    ) -> Result[T_Output, str]:
-        pass
-
-
-def safe_run_fn_async(
-    fn: UnsafeFnAsync[P, T_Output]
-) -> SafeFnAsync[P, T_Output]:
-    async def _fn(*args: P.args, **kwargs: P.kwargs) -> Result[T_Output, str]:
-        try:
-            out = await fn(*args, **kwargs)
-            return Ok(out)
-        except Exception as e:
-            return ErrWithTraceback(e)
-
-    return _fn
-
-
-def safe_run_fn(fn: UnsafeFn[P, T_Output]) -> SafeFn[P, T_Output]:
-    def _fn(*args: P.args, **kwargs: P.kwargs) -> Result[T_Output, str]:
-        try:
-            out = fn(*args, **kwargs)
-            return Ok(out)
-        except Exception as e:
-            return ErrWithTraceback(e)
-
-    return _fn
