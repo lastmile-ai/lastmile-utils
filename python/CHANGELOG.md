@@ -1,3 +1,7 @@
+# 0.0.21
+
+- add + improve decorator utils
+
 # 0.0.20
 
 - get_logger
