@@ -7,7 +7,6 @@ import sys
 from enum import Enum
 from typing import Optional, Sequence, Union
 
-
 import lastmile_utils.lib.core.api as core_utils
 from result import Err, Ok, Result
 
