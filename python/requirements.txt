@@ -17,3 +17,4 @@ sacrebleu==2.4.0
 rouge-score==0.1.2
 absl-py==2.1.0
 rapidfuzz==3.6.1
+torch==2.1.2
