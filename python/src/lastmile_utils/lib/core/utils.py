@@ -1,11 +1,11 @@
 import asyncio
-from functools import partial
-from hashlib import sha256
 import json
 import logging
 import os
 import sys
 import time
+from functools import partial
+from hashlib import sha256
 from typing import (
     IO,
     Any,
@@ -22,15 +22,12 @@ from typing import (
 )
 
 import numpy.typing as npt
+import result
 from jsoncomment import JsonComment
 from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
-import result
 
-from .functional import (
-    ErrWithTraceback,
-)
-
+from .functional import ErrWithTraceback
 
 # Types
 
