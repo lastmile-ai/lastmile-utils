@@ -1,7 +1,12 @@
 {
   "typeCheckingMode": "strict",
   "include": ["python"],
-  "exclude": ["python/build", "python/dist"],
+  "exclude": [
+    "python/build",
+    "python/dist",
+    "python/src/lastmile_utils/lib/eval/nlp/metrics.py",
+    "python/src/lastmile_utils/lib/eval/api/__init__.py"
+  ],
   "ignore": [],
   "venv": "lastmile_utils",
   "pythonVersion": "3.10",
