@@ -6,8 +6,15 @@ jsoncomment==0.4.2
 pandas==2.1.2
 pydantic==2.4.2
 pylint==3.0.2
-pyright==1.1.335
+pyright==1.1.336
 pytest==7.4.3
 python-dotenv==1.0.0
 result==0.16.0
 autoflake==2.2.1
+datasets==2.16.1
+scikit-learn==1.4.0
+sacrebleu==2.4.0
+rouge-score==0.1.2
+absl-py==2.1.0
+rapidfuzz==3.6.1
+torch==2.1.2
