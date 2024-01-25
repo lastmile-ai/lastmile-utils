@@ -6,7 +6,7 @@ jsoncomment==0.4.2
 pandas==2.1.2
 pydantic==2.4.2
 pylint==3.0.2
-pyright==1.1.335
+pyright==1.1.336
 pytest==7.4.3
 python-dotenv==1.0.0
 result==0.16.0
