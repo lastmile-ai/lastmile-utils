@@ -1,3 +1,7 @@
+# 0.0.22
+
+- safe load json
+
 # 0.0.21
 
 - add + improve decorator utils

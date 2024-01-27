@@ -31,6 +31,7 @@ from .functional import (
     ErrWithTraceback,
 )
 
+from .functional import ErrWithTraceback, exception_to_err_with_traceback
 
 # Types
 
@@ -492,3 +493,8 @@ async def run_thunk_safe(
     except BaseException as e:  # type: ignore
         # TODO [P1] log
         return Err(str(e))
+
+
+@exception_to_err_with_traceback
+def safe_load_json(json_str: str) -> JSONObject:
+    return json.loads(json_str)
