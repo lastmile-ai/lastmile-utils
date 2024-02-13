@@ -1,3 +1,7 @@
+# 0.0.23
+
+- relax pydantic version to accommodate ray[serve] 2.9.2
+
 # 0.0.22
 
 - safe load json
