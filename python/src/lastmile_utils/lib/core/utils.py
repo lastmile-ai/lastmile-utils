@@ -22,7 +22,6 @@ from typing import (
 )
 
 import numpy.typing as npt
-from jsoncomment import JsonComment
 from pydantic import BaseModel, ConfigDict, ValidationError
 from result import Err, Ok, Result
 import result
@@ -372,9 +371,8 @@ def load_json(json_str: str) -> Result[JSONObject, str]:
     """More powerful loader than `json` module. Supports comments and trailing commas.
     Input: serialized JSON
     Returns: deserialized JSON or Err if invalid"""
-    parser = JsonComment()
     try:
-        loaded = cast(JSONObject, parser.loads(json_str))  # type: ignore
+        loaded = cast(JSONObject, json.loads(json_str))  # type: ignore
         return Ok(loaded)
     except json.JSONDecodeError as e:
         return ErrWithTraceback(e)

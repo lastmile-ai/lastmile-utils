@@ -1,3 +1,7 @@
+# 0.0.24
+
+- remove jsoncomment
+
 # 0.0.23
 
 - relax pydantic version to accommodate ray[serve] 2.9.2
