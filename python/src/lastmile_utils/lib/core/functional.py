@@ -51,7 +51,9 @@ class T_SafeFn(Protocol[PS, T_Return_cov, E]):
     """function type returning a Result"""
 
     @abstractmethod
-    def __call__(self, *args: PS.args, **kwargs: PS.kwargs) -> Result[T_Return_cov, E]:
+    def __call__(
+        self, *args: PS.args, **kwargs: PS.kwargs
+    ) -> Result[T_Return_cov, E]:
         pass
 
 
@@ -59,7 +61,9 @@ class T_AsyncUnsafeFn(Protocol[PS, T_Return_cov]):
     """Async function type returning an arbitrary value"""
 
     @abstractmethod
-    async def __call__(self, *args: PS.args, **kwargs: PS.kwargs) -> T_Return_cov:
+    async def __call__(
+        self, *args: PS.args, **kwargs: PS.kwargs
+    ) -> T_Return_cov:
         pass
 
 
@@ -138,14 +142,18 @@ def result_reduce_dict_separate(
 async def result_reduce_list_separate_async(
     lst: Iterable[Awaitable[Result[T, str]]]
 ) -> Tuple[list[T], list[str]]:
-    async def _get_result_value(awaitable: Awaitable[Result[T, str]]) -> Result[T, str]:
+    async def _get_result_value(
+        awaitable: Awaitable[Result[T, str]]
+    ) -> Result[T, str]:
         return await awaitable
 
     values = await asyncio.gather(*[_get_result_value(a) for a in lst])
     return result_reduce_list_separate(values)
 
 
-def result_reduce_list_all_ok(lst: Iterable[Result[T, str]]) -> Result[list[T], str]:
+def result_reduce_list_all_ok(
+    lst: Iterable[Result[T, str]]
+) -> Result[list[T], str]:
     oks, errs = result_reduce_list_separate(lst)
     if errs:
         return Err("\n".join(errs))
@@ -177,11 +185,100 @@ def parametrized(
     parametrized_decorator: Callable[
         Concatenate[Callable[PS2, T_Return], PS], Callable[PS3, T_Return2]
     ]
-) -> Callable[PS, Callable[[Callable[PS2, T_Return]], Callable[PS3, T_Return2]]]:
+) -> Callable[
+    PS, Callable[[Callable[PS2, T_Return]], Callable[PS3, T_Return2]]
+]:
+    """
+    TODO: rename -> parametrized_decorator
+
+    Parametrized helps you write a variant of a decorator
+    called a "parametrized decorator".
+
+    This means that you can write a function almost like a decorator,
+    except it can take other arguments.
+
+
+    0. Note that @ is syntactic sugar
+    # "@" is syntactic sugar for
+    @my_decorator
+    def my_input_function():
+        ...
+
+    # my_decorated_function = my_decorator(my_input_function)
+
+    Example:
+
+    1. Normal decorator. Prints 3 times.
+
+        def print_output_decorator(fn):
+        def inner(*args, **kwargs):
+            for i in range(3):
+                print(f"Function {fn.__name__} output:")
+            out = fn(*args, **kwargs)
+            print(out)
+            return out
+
+        return inner
+
+    @print_output_decorator
+    def add_a_and_b_and_1(a: int, b: int) -> int:
+        return a + b + 1
+
+
+    result = add_a_and_b_and_1(2, 3)
+
+
+    2. Broken parametrized decorator (added n_times arg)
+
+    Throws TypeError: print_output_decorator() missing 1 required positional argument: 'n_times'
+
+        # BROKEN
+        def print_output_parametrized_decorator(fn, n_times):
+            def inner(*args, **kwargs):
+                for i in range(n_times):
+                    print(f"Function {fn.__name__} output:")
+                out = fn(*args, **kwargs)
+                print(out)
+                return out
+
+            return inner
+
+        @print_output_decorator
+        def add_a_and_b_and_1(a: int, b: int) -> int:
+            return a + b + 1
+
+
+        result = add_a_and_b_and_1(2, 3)
+
+
+    3. Fixed parametrized decorator
+
+        @parametrized
+        def print_output_parametrized_decorator(fn, n_times):
+            def inner(*args, **kwargs):
+                for i in range(n_times):
+                    print(f"Function {fn.__name__} output:")
+                out = fn(*args, **kwargs)
+                print(out)
+                return out
+
+            return inner
+
+        @print_output_decorator(3)
+        def add_a_and_b_and_1(a: int, b: int) -> int:
+            return a + b + 1
+
+
+        result = add_a_and_b_and_1(2, 3)
+
+    """
+
     def make_decorator(
         *args: PS.args, **kwargs: PS.kwargs
     ) -> Callable[[Callable[PS2, T_Return]], Callable[PS3, T_Return2]]:
-        def decorator(func: Callable[PS2, T_Return]) -> Callable[PS3, T_Return2]:
+        def decorator(
+            func: Callable[PS2, T_Return]
+        ) -> Callable[PS3, T_Return2]:
             return parametrized_decorator(func, *args, **kwargs)
 
         return decorator
@@ -195,9 +292,9 @@ def exception_handled(
     exception_handler: Callable[[Exception], Result[T_Return, T_Err]],
 ) -> T_SafeFn[PS, T_Return, T_Err]:
     """
-    Parametrized decorator for handling exceptions. 
+    Parametrized decorator for handling exceptions.
     User defines an exception-handling function (`exception_handler`) that converts an Exception to a Result.
-    
+
     Returns:
         A plain decorator, i.e. you can use it with @ as follows:
         ```
@@ -206,7 +303,10 @@ def exception_handled(
             raise Exception("Something went wrong")
         ```
     """
-    def decorated(*args: PS.args, **kwargs: PS.kwargs) -> Result[T_Return, T_Err]:
+
+    def decorated(
+        *args: PS.args, **kwargs: PS.kwargs
+    ) -> Result[T_Return, T_Err]:
         try:
             return Ok(fn(*args, **kwargs))
         except Exception as e:
@@ -220,7 +320,9 @@ def exception_handled_async(
     fn: T_AsyncUnsafeFn[PS, T_Return],
     exception_handler: Callable[[Exception], Result[T_Return, T_Err]],
 ) -> T_AsyncSafeFn[PS, T_Return, T_Err]:
-    async def decorated(*args: PS.args, **kwargs: PS.kwargs) -> Result[T_Return, T_Err]:
+    async def decorated(
+        *args: PS.args, **kwargs: PS.kwargs
+    ) -> Result[T_Return, T_Err]:
         try:
             return Ok(await fn(*args, **kwargs))
         except Exception as e:
