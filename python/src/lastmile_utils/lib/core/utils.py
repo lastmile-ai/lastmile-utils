@@ -496,3 +496,23 @@ async def run_thunk_safe(
 @exception_to_err_with_traceback
 def safe_load_json(json_str: str) -> JSONObject:
     return json.loads(json_str)
+
+
+class InternalError(Exception):
+    """
+    Represents unexpected error originating from a LM library.
+
+    (Expected errors / Exceptions should be represented as EResult.)
+    """
+
+    def __init__(self, *args: object):
+        super().__init__(*args)
+
+
+class UserError(Exception):
+    """
+    Represents an exception that is (demonstrably) the result of
+    the user violating one of our API contracts.
+    """
+
+    pass
